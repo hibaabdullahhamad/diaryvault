@@ -22,28 +22,23 @@ class ExportNotesRepository implements IExportNotesRepository {
   Future<String> exportNotesToTextFile(
       {required File file, List<String>? noteList}) async {
     try {
-      if (noteList == null) {
-        log.i("Generating text file for all notes");
+      final result = noteList == null
+          ? await notesRepository.fetchNotes()
+          : await notesRepository.fetchSelectedNotes(noteList);
 
-        final result = await notesRepository.fetchNotes();
+      var fileContent = "";
 
-        var fileContent = "";
+      result.fold((l) => null, (notes) async {
+        for (var note in notes) {
+          fileContent += note.title + "\n";
+          fileContent += "Created at: " + formatDate(note.createdAt) + "\n";
+          fileContent += note.plainText;
+          fileContent += "\n\n---------------------------------\n\n";
+        }
+      });
 
-        result.fold((l) => null, (allNotes) async {
-          for (var note in allNotes) {
-            fileContent += note.title + "\n";
-
-            fileContent += "Created at: " + formatDate(note.createdAt) + "\n";
-            fileContent += note.plainText;
-            fileContent += "\n\n---------------------------------\n\n";
-          }
-        });
-        await file.writeAsString(fileContent);
-
-        return file.path;
-      }
-
-      return "";
+      await file.writeAsString(fileContent);
+      return file.path;
     } catch (e) {
       log.e(e);
       rethrow;
