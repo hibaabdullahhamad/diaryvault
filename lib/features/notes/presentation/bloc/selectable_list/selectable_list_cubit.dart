@@ -23,6 +23,13 @@ class SelectableListCubit extends Cubit<SelectableListState> {
     emit(SelectableListEnabled(selectedItems: [...state.selectedItems, item]));
   }
 
+  void exportSelectedNotes() {
+    // Logic to handle exporting selected notes
+    if (state.selectedItems.isNotEmpty) {
+      emit(SelectableListEnabled(selectedItems: state.selectedItems));
+    }
+  }
+
   void removeItemFromSelection(String item) {
     emit(SelectableListEnabled(
         selectedItems:
