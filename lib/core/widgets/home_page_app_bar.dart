@@ -582,14 +582,20 @@ class ExportIcon extends StatelessWidget {
                           const SizedBox(width: 10),
                           SubmitButton(
                             isLoading: false,
-                            onSubmitted: () {
+                            onSubmitted: () async {
                               Navigator.of(context).pop(); // Close the popup
-                              // Add export to text file logic here
+                              final selectedNotes = context.read<SelectableListCubit>().state.selectedItems;
+                              final directory = await getApplicationDocumentsDirectory();
+                              final file = File('${directory.path}/notes_export.txt');
+                              await ExportNotesRepository().exportNotesToTextFile(
+                                file: file,
+                                noteList: selectedNotes,
+                              );
 
-                              showToast(
-                                  '$exportCount item${exportCount > 1 ? "s" : ""} exported to Text File');
+                              showToast('$exportCount item${exportCount > 1 ? "s" : ""} exported to Text File');
                             },
                             buttonText: 'Text File',
+                  ),
                           ),
                         ],
                       ),
