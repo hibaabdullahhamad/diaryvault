@@ -11,9 +11,14 @@ import 'package:dairy_app/features/auth/data/models/user_config_model.dart';
 import 'package:dairy_app/features/notes/presentation/bloc/notes/notes_bloc.dart';
 import 'package:dairy_app/features/notes/presentation/bloc/notes_fetch/notes_fetch_cubit.dart';
 import 'package:dairy_app/features/notes/presentation/bloc/selectable_list/selectable_list_cubit.dart';
+import 'package:dairy_app/features/notes/data/repositories/export_notes_repository.dart';
+import 'package:dairy_app/features/notes/domain/repositories/notes_repository.dart';
 import 'package:dairy_app/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+
 
 class HomePageAppBar extends StatefulWidget implements PreferredSizeWidget {
   const HomePageAppBar({
@@ -65,6 +70,7 @@ class _HomePageAppBarState extends State<HomePageAppBar> {
           isSearchEnabled: isSearchEnabled,
           openSearchAppBar: openSearchAppBar,
           closeSearchAppBar: closeSearchAppBar,
+          notesRepository: notesRepository,
         )
       ],
       flexibleSpace: GlassMorphismCover(
@@ -138,12 +144,14 @@ class Action extends StatelessWidget {
   final bool isSearchEnabled;
   final Function() openSearchAppBar;
   final Function() closeSearchAppBar;
+  final INotesRepository notesRepository;
 
   const Action(
       {Key? key,
         required this.isSearchEnabled,
         required this.openSearchAppBar,
         required this.closeSearchAppBar})
+        required this.notesRepository,
       : super(key: key);
 
   @override
@@ -201,6 +209,7 @@ class Action extends StatelessWidget {
               // @Procos12 change: Added export icon segment below
               ExportIcon(
                 exportCount: selectableListCubit.state.selectedItems.length,
+                notesRepository: notesRepository,
               ),
               DeleteIcon(
                 deletionCount: selectableListCubit.state.selectedItems.length,
@@ -513,10 +522,12 @@ class _CancelButton extends StatelessWidget {
 // @Procos12: Added code section below for export icon:
 class ExportIcon extends StatelessWidget {
   final int exportCount;
+  final INotesRepository notesRepository;
 
   const ExportIcon({
     Key? key,
     required this.exportCount,
+    required this.notesRepository,
   }) : super(key: key);
 
   @override
@@ -531,86 +542,32 @@ class ExportIcon extends StatelessWidget {
             return;
           }
 
-          final mainTextColor = Theme.of(context)
-              .extension<PopupThemeExtensions>()!
-              .mainTextColor;
+          try {
+            final selectedNotes = context.read<SelectableListCubit>().state.selectedItems;
+            final directory = await getApplicationDocumentsDirectory();
+            final file = File('${directory.path}/notes_export.txt');
 
-          // Show the popup dialog for exporting
-          await showCustomDialog(
-            context: context,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Container(
-                  color: Colors.transparent,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 35, vertical: 15),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "You are about to export $exportCount item${exportCount > 1 ? "s" : ""}.",
-                        style: TextStyle(
-                          fontSize: 18.0,
-                          color: mainTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CancelButton(
-                            buttonText: 'Cancel',
-                            onPressed: () {
-                              Navigator.of(context).pop(); // Close the popup
-                              showToast('Export canceled');
-                            },
-                          ),
-                          const SizedBox(width: 10),
-                          SubmitButton(
-                            isLoading: false,
-                            onSubmitted: () {
-                              Navigator.of(context).pop(); // Close the popup
-                              // Add export to PDF logic here
+            // Pass notesRepository to ExportNotesRepository
+            final exportNotesRepository = ExportNotesRepository(
+              notesRepository: notesRepository,
+            );
 
-                              showToast(
-                                  '$exportCount item${exportCount > 1 ? "s" : ""} exported to PDF');
-                            },
-                            buttonText: 'PDF',
-                          ),
-                          const SizedBox(width: 10),
-                          SubmitButton(
-                            isLoading: false,
-                            onSubmitted: () async {
-                              Navigator.of(context).pop(); // Close the popup
-                              final selectedNotes = context.read<SelectableListCubit>().state.selectedItems;
-                              final directory = await getApplicationDocumentsDirectory();
-                              final file = File('${directory.path}/notes_export.txt');
-                              await ExportNotesRepository().exportNotesToTextFile(
-                                file: file,
-                                noteList: selectedNotes,
-                              );
+            await exportNotesRepository.exportNotesToTextFile(
+              file: file,
+              noteList: selectedNotes,
+            );
 
-                              showToast('$exportCount item${exportCount > 1 ? "s" : ""} exported to Text File');
-                            },
-                            buttonText: 'Text File',
-                  ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          );
+            showToast('$exportCount item${exportCount > 1 ? "s" : ""} exported to Text File');
+          } catch (e) {
+            showToast('Failed to export notes: $e');
+          }
         },
         tooltip: 'Export Selected Notes',
       ),
     );
   }
 }
+
 
 
 

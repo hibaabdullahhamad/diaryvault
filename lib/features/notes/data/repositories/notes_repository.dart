@@ -36,6 +36,29 @@ class NotesRepository with NoteHelperMixin implements INotesRepository {
   }
 
   @override
+  Future<Either<NotesFailure, List<NoteModel>>> fetchSelectedNotes(
+      List<String> noteIds) async {
+    try {
+      // Fetch all notes for the current user
+      final allNotesResult = await fetchNotes();
+
+      // Filter the notes based on the provided IDs
+      return allNotesResult.fold(
+            (failure) => Left(failure),
+            (allNotes) {
+          final selectedNotes = allNotes
+              .where((note) => noteIds.contains(note.id))
+              .toList();
+          return Right(selectedNotes);
+        },
+      );
+    } catch (e) {
+      log.e(e);
+      return Left(NotesFailure.unknownError());
+    }
+  }
+
+  @override
   Future<Either<NotesFailure, NoteModel>> getNote(String id) async {
     try {
       var note = await notesLocalDataSource.getNote(
