@@ -542,9 +542,7 @@ class ExportIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final exportNotesRepository = ExportNotesRepository(
-      notesRepository: context.read<NotesRepository>(), // Ensure NotesRepository is available in the context
-    );
+    final exportNotesRepository = context.read<IExportNotesRepository>();
 
     return Padding(
       padding: const EdgeInsets.only(right: 13.0),

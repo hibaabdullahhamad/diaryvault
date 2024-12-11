@@ -44,6 +44,13 @@ class App extends StatelessWidget {
     return MultiProvider(
       providers: [
 
+      Provider<INotesRepository>(
+            create: (context) => sl<INotesRepository>(),
+          ),
+          Provider<IExportNotesRepository>(
+            create: (context) => sl<IExportNotesRepository>(),
+          ),
+
         Provider<INotesRepository>(
             create: (context) => sl<INotesRepository>(),
             ),
