@@ -25,16 +25,45 @@ import 'package:dairy_app/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:dairy_app/features/notes/data/repositories/notes_repository.dart';
+import 'package:dairy_app/features/notes/data/repositories/export_notes_repository.dart';
+import 'package:provider/provider.dart';
+
 
 final log = printer("App");
+
+import 'package:dairy_app/features/notes/data/repositories/notes_repository.dart';
+import 'package:dairy_app/features/notes/data/repositories/export_notes_repository.dart';
+import 'package:provider/provider.dart';
 
 class App extends StatelessWidget {
   const App({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
+    return MultiProvider(
       providers: [
+
+        Provider<INotesRepository>(
+            create: (context) => sl<INotesRepository>(),
+            ),
+
+        Provider<IExportNotesRepository>(
+                create: (context) => sl<IExportNotesRepository>(),
+              ),
+        // Add NotesRepository to the provider list
+        Provider<NotesRepository>(
+          create: (context) => NotesRepository(
+            notesLocalDataSource: sl<NotesLocalDataSource>(), // Ensure this is registered in DI
+          ),
+        ),
+        // Add ExportNotesRepository to the provider list
+        Provider<ExportNotesRepository>(
+          create: (context) => ExportNotesRepository(
+            notesRepository: sl<NotesRepository>(),
+          ),
+        ),
+        // Your existing BlocProviders
         BlocProvider<AuthSessionBloc>(
           create: (context) => sl<AuthSessionBloc>(),
         ),
@@ -64,12 +93,13 @@ class App extends StatelessWidget {
         ),
         BlocProvider<FontCubit>(
           create: (context) => sl<FontCubit>(),
-        )
+        ),
       ],
       child: const AppView(),
     );
   }
 }
+
 
 class AppView extends StatefulWidget {
   const AppView({

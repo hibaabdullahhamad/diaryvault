@@ -12,6 +12,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   local_auth_windows
   pasteboard
   permission_handler_windows
+  printing
   share_plus
   simple_accordion
   url_launcher_windows

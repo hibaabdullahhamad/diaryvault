@@ -14,6 +14,27 @@ import 'package:dairy_app/features/notes/presentation/bloc/selectable_list/selec
 import 'package:dairy_app/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:dairy_app/features/notes/data/repositories/export_notes_repository.dart'; // For ExportNotesRepository
+import 'package:path_provider/path_provider.dart'; // For getApplicationDocumentsDirectory
+import 'dart:io'; // For working with files
+import 'package:dairy_app/features/notes/data/repositories/notes_repository.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:dairy_app/features/notes/data/repositories/notes_repository.dart';
+
+
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<NotesRepository>(
+          create: (_) => NotesRepository(), // Ensure this is the correct repository initialization
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
 
 class HomePageAppBar extends StatefulWidget implements PreferredSizeWidget {
   const HomePageAppBar({
@@ -521,6 +542,10 @@ class ExportIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final exportNotesRepository = ExportNotesRepository(
+      notesRepository: context.read<NotesRepository>(), // Ensure NotesRepository is available in the context
+    );
+
     return Padding(
       padding: const EdgeInsets.only(right: 13.0),
       child: IconButton(
@@ -535,7 +560,6 @@ class ExportIcon extends StatelessWidget {
               .extension<PopupThemeExtensions>()!
               .mainTextColor;
 
-          // Show the popup dialog for exporting
           await showCustomDialog(
             context: context,
             child: LayoutBuilder(
@@ -543,7 +567,7 @@ class ExportIcon extends StatelessWidget {
                 return Container(
                   color: Colors.transparent,
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 35, vertical: 15),
+                      const EdgeInsets.symmetric(horizontal: 35, vertical: 15),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
@@ -563,31 +587,43 @@ class ExportIcon extends StatelessWidget {
                           CancelButton(
                             buttonText: 'Cancel',
                             onPressed: () {
-                              Navigator.of(context).pop(); // Close the popup
+                              Navigator.of(context).pop();
                               showToast('Export canceled');
                             },
                           ),
                           const SizedBox(width: 10),
                           SubmitButton(
                             isLoading: false,
-                            onSubmitted: () {
-                              Navigator.of(context).pop(); // Close the popup
-                              // Add export to PDF logic here
+                            onSubmitted: () async {
+                              Navigator.of(context).pop();
 
-                              showToast(
-                                  '$exportCount item${exportCount > 1 ? "s" : ""} exported to PDF');
+                              try {
+                                final pdfPath = await exportNotesRepository.exportNotesToPDF();
+                                showToast(
+                                  '$exportCount item${exportCount > 1 ? "s" : ""} exported to PDF: $pdfPath',
+                                );
+                              } catch (e) {
+                                showToast('Failed to export to PDF');
+                              }
                             },
                             buttonText: 'PDF',
                           ),
                           const SizedBox(width: 10),
                           SubmitButton(
                             isLoading: false,
-                            onSubmitted: () {
-                              Navigator.of(context).pop(); // Close the popup
-                              // Add export to text file logic here
+                            onSubmitted: () async {
+                              Navigator.of(context).pop();
 
-                              showToast(
-                                  '$exportCount item${exportCount > 1 ? "s" : ""} exported to Text File');
+                              try {
+                                final directory = await getApplicationDocumentsDirectory();
+                                final file = File('${directory.path}/notes_export.txt');
+                                await exportNotesRepository.exportNotesToTextFile(file: file);
+                                showToast(
+                                  '$exportCount item${exportCount > 1 ? "s" : ""} exported to Text File: ${file.path}',
+                                );
+                              } catch (e) {
+                                showToast('Failed to export to Text File');
+                              }
                             },
                             buttonText: 'Text File',
                           ),
